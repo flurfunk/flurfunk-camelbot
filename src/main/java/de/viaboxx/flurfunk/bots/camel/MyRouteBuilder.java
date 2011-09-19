@@ -16,10 +16,10 @@
  */
 package de.viaboxx.flurfunk.bots.camel;
 
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.spring.Main;
-
-import static org.apache.camel.builder.xml.XPathBuilder.xpath;
 
 /**
  * A Camel Router
@@ -38,16 +38,37 @@ public class MyRouteBuilder extends RouteBuilder {
      */
     public void configure() {
 
-        // TODO create Camel routes here.
+        Processor postMessage = new PostToMessages();
+        from("irc:camelbot@irc.irccloud.com?channels=#viaboxx").
+                log("Received message").
+                choice().
+                when(body().startsWith("camelbot")).process(postMessage).
 
-        // here is a sample which processes the input files
-        // (leaving them in place - see the 'noop' flag)
-        // then performs content based routing on the message
-        // using XPath
-        from("file:src/data?noop=true").
-            choice().
-                when(xpath("/person/city = 'London'")).to("file:target/messages/uk").
-                otherwise().to("file:target/messages/others");
+                to("http://127.0.0.1:3000/message");
 
+
+    }
+
+    private static class PostToMessages implements Processor {
+
+        /**
+         * <pre>
+         * POST http://flurfunk.viaboxx.de/message
+         * Content-Type: application/xml
+         * <message author="felix">
+         * Hello, World!
+         * </message>
+         * </pre>
+         *
+         * @param exchange
+         * @throws Exception
+         */
+        @Override
+        public void process(Exchange exchange) throws Exception {
+            String body = (String) exchange.getIn().getBody();
+            StringBuilder xmlBuilder = new StringBuilder();
+            xmlBuilder.append("<message author='felix'>" + body + "</message>");
+            exchange.getIn().setBody(xmlBuilder.toString());
+        }
     }
 }

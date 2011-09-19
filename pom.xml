@@ -51,6 +51,11 @@
             <artifactId>camel-irc</artifactId>
             <version>${camel.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-http</artifactId>
+            <version>${camel.version}</version>
+        </dependency>
 
         <!-- logging -->
         <dependency>
