@@ -19,6 +19,7 @@ package de.viaboxx.flurfunk.bots.camel;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.irc.IrcMessage;
 import org.apache.camel.spring.Main;
 
 /**
@@ -38,18 +39,14 @@ public class MyRouteBuilder extends RouteBuilder {
      */
     public void configure() {
 
-        Processor postMessage = new PostToMessages();
+        Processor postMessage = new PostIrcMessage();
         from("irc:camelbot@irc.irccloud.com?channels=#viaboxx").
-                log("Received message").
                 choice().
                 when(body().startsWith("camelbot")).process(postMessage).
-
                 to("http://127.0.0.1:3000/message");
-
-
     }
 
-    private static class PostToMessages implements Processor {
+    private static class PostIrcMessage implements Processor {
 
         /**
          * <pre>
@@ -65,9 +62,11 @@ public class MyRouteBuilder extends RouteBuilder {
          */
         @Override
         public void process(Exchange exchange) throws Exception {
-            String body = (String) exchange.getIn().getBody();
+            IrcMessage ircMsg = (IrcMessage) exchange.getIn();
+            String message = ircMsg.getMessage();
+            String user = ircMsg.getUser().toString();
             StringBuilder xmlBuilder = new StringBuilder();
-            xmlBuilder.append("<message author='felix'>" + body + "</message>");
+            xmlBuilder.append("<message author='camelbot (irc)'>" + user + ": " + message.substring(10, message.length()) + "</message>");
             exchange.getIn().setBody(xmlBuilder.toString());
         }
     }
