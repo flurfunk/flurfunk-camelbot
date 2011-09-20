@@ -32,7 +32,6 @@ import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
  * A Camel Router
  */
 public class MyRouteBuilder extends RouteBuilder {
-    private static final String FLURFUNK_ENDPOINT = "http://127.0.0.1:3000/message";
 
     /**
      * Launch the app.
@@ -73,7 +72,7 @@ public class MyRouteBuilder extends RouteBuilder {
 
         from(String.format("imaps://imap.gmail.com?consumer.delay=%s&username=%s&password=%s&folderName=%s", pollingFreq, username, password, imapFolder)).
                 process(new MailProcessor()).
-                to(FLURFUNK_ENDPOINT);
+                to(config.evaluateToString("flurfunkUrl"));
     }
 
     private void fromIrcRoute(ConstrettoConfiguration config) {
@@ -84,7 +83,7 @@ public class MyRouteBuilder extends RouteBuilder {
         from(String.format("irc:camelbot@%s?channels=%s", ircServer, ircChannel)).
                 choice().
                 when(body().startsWith(messagePrefix)).process(new IrcProcessor(messagePrefix)).
-                to(FLURFUNK_ENDPOINT);
+                to(config.evaluateToString("flurfunkUrl"));
     }
 
     private static class MailProcessor implements Processor {
