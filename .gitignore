@@ -1,3 +1,4 @@
 target
 *.iml
 .idea
+src/main/resources/camelbot-overrides.properties

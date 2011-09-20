@@ -22,7 +22,9 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.irc.IrcMessage;
 import org.apache.camel.component.mail.MailMessage;
 import org.apache.camel.spring.Main;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.constretto.ConstrettoBuilder;
+import org.constretto.ConstrettoConfiguration;
+import org.springframework.core.io.DefaultResourceLoader;
 
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
@@ -33,7 +35,11 @@ public class MyRouteBuilder extends RouteBuilder {
     private static final String FLURFUNK_ENDPOINT = "http://127.0.0.1:3000/message";
 
     /**
-     * A main() so we can easily run these routing rules in our IDE
+     * Launch the app.
+     *
+     * Camelbot will read a default camelbot.properties from the classpath. If you wish to override these settings,
+     * either use staged properties (constretto.org style) - or create a camelbot-overrides.properties file.
+     *
      */
     public static void main(String... args) throws Exception {
         Main.main(args);
@@ -43,28 +49,41 @@ public class MyRouteBuilder extends RouteBuilder {
      * Lets configure the Camel routing rules using Java code...
      */
     public void configure() {
-        fromIrcRoute();
-        fromImapRoute();
+        ConstrettoConfiguration config = configureConstretto();
+        fromIrcRoute(config);
+        fromImapRoute(config);
     }
 
-    private void fromImapRoute() {
-        //TODO: Get a dedicated imap account for this!
-        String username = "thomas.nicolaisen@viaboxx.de";
-        String password = "XXXXXXX";
-        String imapFolder = "camelbot";
+    private ConstrettoConfiguration configureConstretto() {
+        ConstrettoConfiguration config = new ConstrettoBuilder()
+                .createPropertiesStore()
+                .addResource(new DefaultResourceLoader().getResource("camelbot.properties"))
+                .addResource(new DefaultResourceLoader().getResource("camelbot-overrides.properties"))
+                .done()
+                .getConfiguration();
+        return config;
+    }
 
-        from(String.format("imaps://imap.gmail.com?consumer.delay=5000&username=%s&password=%s&folderName=%s", username, password, imapFolder)).
+    private void fromImapRoute(ConstrettoConfiguration config) {
+        //TODO: Get a dedicated imap account for this!
+        String username = config.evaluateToString("imapUserName");
+        String password = config.evaluateToString("imapPassword");
+        String imapFolder = config.evaluateToString("imapFolder"); //camelbot
+        String pollingFreq = config.evaluateToString("imapPollingFrequency");
+
+        from(String.format("imaps://imap.gmail.com?consumer.delay=%s&username=%s&password=%s&folderName=%s", pollingFreq, username, password, imapFolder)).
                 process(new MailProcessor()).
                 to(FLURFUNK_ENDPOINT);
-    }           
+    }
 
-    private void fromIrcRoute() {
-        String ircChannel = "#viaboxx";
-        String messagePrefix = "camelbot";
+    private void fromIrcRoute(ConstrettoConfiguration config) {
+        String ircServer = config.evaluateToString("ircServer");  //irc.irccloud.com
+        String ircChannel =  config.evaluateToString("ircChannel"); //#viaboxx
+        String messagePrefix = config.evaluateToString("ircMessagePrefix"); //'camelbot: '
 
-        from("irc:camelbot@irc.irccloud.com?channels=" + ircChannel).
+        from(String.format("irc:camelbot@%s?channels=%s", ircServer, ircChannel)).
                 choice().
-                when(body().startsWith(messagePrefix)).process(new IrcProcessor()).
+                when(body().startsWith(messagePrefix)).process(new IrcProcessor(messagePrefix)).
                 to(FLURFUNK_ENDPOINT);
     }
 
@@ -84,6 +103,12 @@ public class MyRouteBuilder extends RouteBuilder {
     }
 
     private static class IrcProcessor implements Processor {
+        private final String messagePrefix;
+
+        public IrcProcessor(String messagePrefix) {
+
+            this.messagePrefix = messagePrefix;
+        }
 
         @Override
         public void process(Exchange exchange) throws Exception {
@@ -95,7 +120,7 @@ public class MyRouteBuilder extends RouteBuilder {
 
             String subject = String.format("Chatted on %s", ircChannel);
             //ircMessage starts with 'camelbot: ' - cut away that part
-            String body = message.substring("camelbot: ".length(), message.length());
+            String body = message.substring(messagePrefix.length(), message.length());
 
             exchange.getIn().setBody(messageString(user, subject, body, "irc"));
         }
