@@ -20,12 +20,17 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.irc.IrcMessage;
+import org.apache.camel.component.mail.MailMessage;
 import org.apache.camel.spring.Main;
+import org.apache.commons.lang3.StringEscapeUtils;
+
+import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
 /**
  * A Camel Router
  */
 public class MyRouteBuilder extends RouteBuilder {
+    private static final String FLURFUNK_ENDPOINT = "http://127.0.0.1:3000/message";
 
     /**
      * A main() so we can easily run these routing rules in our IDE
@@ -38,36 +43,85 @@ public class MyRouteBuilder extends RouteBuilder {
      * Lets configure the Camel routing rules using Java code...
      */
     public void configure() {
-
-        Processor postMessage = new PostIrcMessage();
-        from("irc:camelbot@irc.irccloud.com?channels=#viaboxx").
-                choice().
-                when(body().startsWith("camelbot")).process(postMessage).
-                to("http://127.0.0.1:3000/message");
+        fromIrcRoute();
+        fromImapRoute();
     }
 
-    private static class PostIrcMessage implements Processor {
+    private void fromImapRoute() {
+        //TODO: Get a dedicated imap account for this!
+        String username = "thomas.nicolaisen@viaboxx.de";
+        String password = "XXXXXXX";
+        String imapFolder = "camelbot";
 
-        /**
-         * <pre>
-         * POST http://flurfunk.viaboxx.de/message
-         * Content-Type: application/xml
-         * <message author="felix">
-         * Hello, World!
-         * </message>
-         * </pre>
-         *
-         * @param exchange
-         * @throws Exception
-         */
+        from(String.format("imaps://imap.gmail.com?consumer.delay=5000&username=%s&password=%s&folderName=%s", username, password, imapFolder)).
+                process(new MailProcessor()).
+                to(FLURFUNK_ENDPOINT);
+    }           
+
+    private void fromIrcRoute() {
+        String ircChannel = "#viaboxx";
+        String messagePrefix = "camelbot";
+
+        from("irc:camelbot@irc.irccloud.com?channels=" + ircChannel).
+                choice().
+                when(body().startsWith(messagePrefix)).process(new IrcProcessor()).
+                to(FLURFUNK_ENDPOINT);
+    }
+
+    private static class MailProcessor implements Processor {
+
+        @Override
+        public void process(Exchange exchange) throws Exception {
+            MailMessage message = (MailMessage) exchange.getIn();
+
+            String subject = message.getMessage().getSubject();
+            String from = message.getMessage().getFrom()[0].toString();
+            String body = (String) message.getBody();
+
+            exchange.getIn().setBody(messageString(from, subject, body, "mail"));
+        }
+
+    }
+
+    private static class IrcProcessor implements Processor {
+
         @Override
         public void process(Exchange exchange) throws Exception {
             IrcMessage ircMsg = (IrcMessage) exchange.getIn();
             String message = ircMsg.getMessage();
             String user = ircMsg.getUser().toString();
-            StringBuilder xmlBuilder = new StringBuilder();
-            xmlBuilder.append("<message author='camelbot (irc)'>" + user + ": " + message.substring(10, message.length()) + "</message>");
-            exchange.getIn().setBody(xmlBuilder.toString());
+            String ircChannel = ircMsg.getTarget();
+            String ircServer = ircMsg.getUser().getServername();
+
+            String subject = String.format("Chatted on %s", ircChannel);
+            //ircMessage starts with 'camelbot: ' - cut away that part
+            String body = message.substring("camelbot: ".length(), message.length());
+
+            exchange.getIn().setBody(messageString(user, subject, body, "irc"));
         }
+    }
+
+    /**
+     * <pre>
+     * POST http://flurfunk.viaboxx.de/message
+     * Content-Type: application/xml
+     * <message author="felix">
+     * Hello, World!
+     * </message>
+     * </pre>
+     */
+    private static String messageString(String from, String subject, String body, String channel) {
+
+        StringBuilder messageBuilder = new StringBuilder().
+                append(subject).
+                append(" --- ").
+                append(body);
+        //TODO: Append urls!
+
+        StringBuilder xmlBuilder = new StringBuilder().
+                append("<message author='" + escapeHtml4(from) + " (" + escapeHtml4(channel) + ")'>").
+                append(escapeHtml4(messageBuilder.toString())).
+                append("</message>");
+        return xmlBuilder.toString();
     }
 }

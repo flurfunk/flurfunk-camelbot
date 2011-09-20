@@ -56,6 +56,18 @@
             <artifactId>camel-http</artifactId>
             <version>${camel.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-mail</artifactId>
+            <version>${camel.version}</version>
+        </dependency>
+
+        <!-- Pull in commons-lang to get a quick conversion to html escaped symbols -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.0.1</version>
+        </dependency>
 
         <!-- logging -->
         <dependency>
