@@ -120,7 +120,7 @@ public class MyRouteBuilder extends RouteBuilder {
 
             String subject = String.format("Chatted on %s", ircChannel);
             //ircMessage starts with 'camelbot: ' - cut away that part
-            String body = message.substring(messagePrefix.length(), message.length());
+            String body = message.substring(messagePrefix.length()+1, message.length());
 
             exchange.getIn().setBody(messageString(user, subject, body, "irc"));
         }
@@ -138,14 +138,14 @@ public class MyRouteBuilder extends RouteBuilder {
     private static String messageString(String from, String subject, String body, String channel) {
 
         StringBuilder messageBuilder = new StringBuilder().
-                append(subject).
-                append(" --- ").
-                append(body);
+                append(escapeHtml4(subject)).
+                append("\n").
+                append(escapeHtml4(body));
         //TODO: Append urls!
 
         StringBuilder xmlBuilder = new StringBuilder().
                 append("<message author='" + escapeHtml4(from) + " (" + escapeHtml4(channel) + ")'>").
-                append(escapeHtml4(messageBuilder.toString())).
+                append(messageBuilder.toString()).
                 append("</message>");
         return xmlBuilder.toString();
     }
