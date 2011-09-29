@@ -92,11 +92,10 @@ public class MyRouteBuilder extends RouteBuilder {
         public void process(Exchange exchange) throws Exception {
             MailMessage message = (MailMessage) exchange.getIn();
 
-            String subject = message.getMessage().getSubject();
             String from = message.getMessage().getFrom()[0].toString();
-            String body = (String) message.getBody();
-
-            exchange.getIn().setBody(messageString(from, subject, body, "mail"));
+            String subject = message.getMessage().getSubject();
+//            String body = (String) message.getBody();
+            exchange.getIn().setBody(messageString(from, subject, "", "mail"));
         }
 
     }
