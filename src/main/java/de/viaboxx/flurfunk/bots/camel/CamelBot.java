@@ -35,10 +35,9 @@ public class CamelBot extends RouteBuilder {
 
     /**
      * Launch the app.
-     *
+     * <p/>
      * Camelbot will read a default camelbot.properties from the classpath. If you wish to override these settings,
      * either use staged properties (constretto.org style) - or create a camelbot-overrides.properties file.
-     *
      */
     public static void main(String... args) throws Exception {
         Main.main(args);
@@ -72,12 +71,12 @@ public class CamelBot extends RouteBuilder {
 
         from(String.format("imaps://imap.gmail.com?consumer.delay=%s&username=%s&password=%s&folderName=%s", pollingFreq, username, password, imapFolder)).
                 process(new MailProcessor()).
-                to(config.evaluateToString("flurfunkUrl"));
+                to(config.evaluateToString("flurfunkUrl" + config.evaluateToString("flurfunkUrlSecurity")));
     }
 
     private void fromIrcRoute(ConstrettoConfiguration config) {
         String ircServer = config.evaluateToString("ircServer");  //irc.irccloud.com
-        String ircChannel =  config.evaluateToString("ircChannel"); //#viaboxx
+        String ircChannel = config.evaluateToString("ircChannel"); //#flurfunk
         String messagePrefix = config.evaluateToString("ircMessagePrefix"); //'camelbot: '
 
         from(String.format("irc:camelbot@%s?channels=%s", ircServer, ircChannel)).
@@ -118,7 +117,7 @@ public class CamelBot extends RouteBuilder {
 
             String subject = String.format("Chatted on %s", ircChannel);
             //ircMessage starts with 'camelbot: ' - cut away that part
-            String body = message.substring(messagePrefix.length()+1, message.length());
+            String body = message.substring(messagePrefix.length() + 1, message.length());
 
             exchange.getIn().setBody(messageString(user, subject, body, "irc"));
         }
