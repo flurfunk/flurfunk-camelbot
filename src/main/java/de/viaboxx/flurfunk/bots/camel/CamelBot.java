@@ -71,7 +71,11 @@ public class CamelBot extends RouteBuilder {
 
         from(String.format("imaps://imap.gmail.com?consumer.delay=%s&username=%s&password=%s&folderName=%s", pollingFreq, username, password, imapFolder)).
                 process(new MailProcessor()).
-                to(config.evaluateToString("flurfunkUrl" + config.evaluateToString("flurfunkUrlSecurity")));
+                to(flurfunkUrl(config));
+    }
+
+    private String flurfunkUrl(ConstrettoConfiguration config) {
+        return config.evaluateToString("flurfunkUrl") + config.evaluateToString("flurfunkUrlSecurity");
     }
 
     private void fromIrcRoute(ConstrettoConfiguration config) {
@@ -82,7 +86,7 @@ public class CamelBot extends RouteBuilder {
         from(String.format("irc:camelbot@%s?channels=%s", ircServer, ircChannel)).
                 choice().
                 when(body().startsWith(messagePrefix)).process(new IrcProcessor(messagePrefix)).
-                to(config.evaluateToString("flurfunkUrl"));
+                to(flurfunkUrl(config));
     }
 
     private static class MailProcessor implements Processor {
