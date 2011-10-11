@@ -31,7 +31,7 @@ import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 /**
  * A Camel Router
  */
-public class MyRouteBuilder extends RouteBuilder {
+public class CamelBot extends RouteBuilder {
 
     /**
      * Launch the app.
