@@ -3,22 +3,23 @@ Flurfunk - CamelBot
 
 Camelbot is a generic Flurfunk-bot.
 
+Run it locally like this:
 
-Run it like this:
-
-mvn camel:run
-
+        mvn camel:run
 
 Generating a standalone camelbot application/daemon
 ---------------------------------------------------
 
-mvn package
+        mvn package
 
-Zip and copy out target/appassembler/camelbot
+This will create a zipfile in the target directory. This artifact is continously deployed into
+Nexus.
 
 Running camelbot
 ----------------
-sh camelbot/bin/camelbot
+
+        sh camelbot_dir/bin/camelbot
+
 
 Configuration
 -------------
