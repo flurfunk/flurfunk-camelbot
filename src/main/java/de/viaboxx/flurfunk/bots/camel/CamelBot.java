@@ -53,10 +53,18 @@ public class CamelBot extends RouteBuilder {
     }
 
     private ConstrettoConfiguration configureConstretto() {
+        String propFile = System.getProperty("camelbotProps");
+        if(propFile==null){
+            System.out.println("No camelbotProps system property specified. Will look in /etc/camelbot.properties for configuration.");
+            propFile = "file:/etc/camelbot.properties";
+        }
+        else propFile = "file:"+propFile;
+
         ConstrettoConfiguration config = new ConstrettoBuilder()
                 .createPropertiesStore()
                 .addResource(new DefaultResourceLoader().getResource("camelbot.properties"))
                 .addResource(new DefaultResourceLoader().getResource("camelbot-overrides.properties"))
+                .addResource(new DefaultResourceLoader().getResource(propFile))
                 .done()
                 .getConfiguration();
         return config;
