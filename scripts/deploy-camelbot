@@ -1,0 +1,19 @@
+echo "************ Download new camelbot"
+wget -O flurfunk-camelbot.tar.gz --user=nexus_username --password=nexus_password 'https://server/nexus/service/local/artifact/maven/redirect?r=snapshots&g=de.viaboxx.flurfunk&a=flurfunk-camelbot&v=1.0-SNAPSHOT&e=tar.gz&c=dist'
+
+echo "************ kill existing Camelbot"
+kill `ps -ef | grep CamelBot | grep -v grep | awk '{print $2}'`
+
+echo "************ Remove existing camelbot"
+rm -rf /tmp/flurfunk-camelbot-1.0-SNAPSHOT/
+
+echo "************ Deploy the new"
+tar xvf flurfunk-camelbot.tar.gz -C /tmp
+
+echo "************ Remove the old zipfile"
+rm flurfunk-camelbot.tar.gz
+
+echo "************ Starting camelbot...."
+cd /tmp/flurfunk-camelbot-1.0-SNAPSHOT/
+nohup bin/camelbot > camelbot.out 2> camelbot.err < /dev/null &
+echo "************ Done"
