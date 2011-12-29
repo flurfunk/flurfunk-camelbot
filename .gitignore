@@ -1,6 +1,6 @@
 target
 *.iml
 .idea
-src/test/resources/camelbot-overrides.properties
 .DS_Store
+/src/test/resources/camelbot-overrides.properties
 
