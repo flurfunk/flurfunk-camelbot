@@ -1,7 +1,7 @@
 Flurfunk - CamelBot
 ===================
 
-Camelbot is a generic Flurfunk-bot.
+Camelbot is a generic Flurfunk-bot that uses Apache Camel.
 
 Run it locally like this:
 
