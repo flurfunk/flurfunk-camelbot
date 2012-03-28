@@ -24,7 +24,6 @@
 
     <groupId>de.viaboxx.flurfunk</groupId>
     <artifactId>flurfunk-camelbot</artifactId>
-    <packaging>jar</packaging>
     <version>1.0-SNAPSHOT</version>
     <parent>
         <groupId>de.viaboxx.parents</groupId>
