@@ -71,7 +71,6 @@ public class CamelBot extends RouteBuilder {
     }
 
     private void fromImapRoute(ConstrettoConfiguration config) {
-        //TODO: Get a dedicated imap account for this!
         String username = config.evaluateToString("imapUserName");
         String password = config.evaluateToString("imapPassword");
         String imapFolder = config.evaluateToString("imapFolder"); //camelbot
@@ -137,7 +136,7 @@ public class CamelBot extends RouteBuilder {
 
     /**
      * <pre>
-     * POST http://flurfunk.viaboxx.de/message
+     * POST http://flurfunk/message
      * Content-Type: application/xml
      * <message author="felix">
      * Hello, World!
