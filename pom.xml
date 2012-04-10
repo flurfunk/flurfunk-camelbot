@@ -7,11 +7,6 @@
     <groupId>de.viaboxx.flurfunk</groupId>
     <artifactId>flurfunk-camelbot</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <parent>
-        <groupId>de.viaboxx.parents</groupId>
-        <artifactId>viaboxx-parent</artifactId>
-        <version>1</version>
-    </parent>
 
     <name>FlurFunk CamelBot</name>
     <url>http://flurfunk.github.com</url>
