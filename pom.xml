@@ -32,7 +32,7 @@
     </parent>
 
     <name>FlurFunk CamelBot</name>
-    <url>http://flurfunk.viaboxxsystems.de</url>
+    <url>http://flurfunk.github.com</url>
 
     <properties>
         <camel.version>2.8.1</camel.version>
