@@ -12,8 +12,7 @@ Generating a standalone camelbot application/daemon
 
         mvn package
 
-This will create a zipfile in the target directory. This artifact is continously deployed into
-Nexus.
+This will create a zipfile in the target directory.
 
 Running camelbot
 ----------------
@@ -24,10 +23,23 @@ Running camelbot
 Configuration
 -------------
 
-You can either specify -DcamelProps=path-to-file in JAVA_OPTS before running, or a properties 
-file in /etc/camelbot.properties will be assumed.
+Camelbot will look for configuration in 
 
-See src/main/config/camelbot.properties for available properties you can override.
+```
+/etc/camelbot.properties 
+```
+
+To override this location, you can either sepcify this system variable (export JAVA_OPTS..):
+
+```
+-DcamelProps=path-to-config-file
+```
+
+For a list of properties you can override, see:
+
+```
+src/main/config/camelbot.properties
+```
 
 
 License
