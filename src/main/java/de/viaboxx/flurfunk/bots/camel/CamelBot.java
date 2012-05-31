@@ -153,7 +153,9 @@ public class CamelBot extends RouteBuilder {
 
         StringBuilder xmlBuilder = new StringBuilder().
                 append("<message author='" + escapeHtml4(from) + " (" + escapeHtml4(channel) + ")'>").
+                append("<![CDATA[").
                 append(messageBuilder.toString()).
+                append("]]>").
                 append("</message>");
         return xmlBuilder.toString();
     }
