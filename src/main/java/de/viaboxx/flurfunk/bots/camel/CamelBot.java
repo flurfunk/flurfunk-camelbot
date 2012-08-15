@@ -16,6 +16,7 @@
  */
 package de.viaboxx.flurfunk.bots.camel;
 
+import com.google.common.base.Joiner;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -25,6 +26,9 @@ import org.apache.camel.spring.Main;
 import org.constretto.ConstrettoBuilder;
 import org.constretto.ConstrettoConfiguration;
 import org.springframework.core.io.DefaultResourceLoader;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
@@ -54,11 +58,10 @@ public class CamelBot extends RouteBuilder {
 
     private ConstrettoConfiguration configureConstretto() {
         String propFile = System.getProperty("camelbotProps");
-        if(propFile==null){
+        if (propFile == null) {
             System.out.println("No camelbotProps system property specified. Will look in /etc/camelbot.properties for configuration.");
             propFile = "file:/etc/camelbot.properties";
-        }
-        else propFile = "file:"+propFile;
+        } else propFile = "file:" + propFile;
 
         ConstrettoConfiguration config = new ConstrettoBuilder()
                 .createPropertiesStore()
@@ -104,8 +107,16 @@ public class CamelBot extends RouteBuilder {
 
             String from = message.getMessage().getFrom()[0].toString();
             String subject = message.getMessage().getSubject();
-//            String body = (String) message.getBody();
-            exchange.getIn().setBody(messageString(from, subject, "", "mail"));
+
+            List<String> channels = new ArrayList<String>();
+
+            //TODO: Not very portable to have these set of channels.. Make it configurable at some point.
+            if (subject.contains("[commits]")) channels.add("commits");
+            if (subject.contains("[ci]")) channels.add("ci");
+            if (subject.contains("Service Alert")) channels.add("nagios");
+
+            String channelsCommaSeparated = Joiner.on(',').join(channels);
+            exchange.getIn().setBody(messageString(from, subject, "", channelsCommaSeparated));
         }
 
     }
@@ -143,7 +154,7 @@ public class CamelBot extends RouteBuilder {
      * </message>
      * </pre>
      */
-    private static String messageString(String from, String subject, String body, String channel) {
+    private static String messageString(String from, String subject, String body, String channels) {
 
         StringBuilder messageBuilder = new StringBuilder().
                 append(escapeHtml4(subject)).
@@ -152,7 +163,7 @@ public class CamelBot extends RouteBuilder {
         //TODO: Append urls!
 
         StringBuilder xmlBuilder = new StringBuilder().
-                append("<message author='" + escapeHtml4(from) + " (" + escapeHtml4(channel) + ")'>").
+                append("<message channels='" + escapeHtml4(channels) + "' author='" + escapeHtml4(from) + "'>").
                 append("<![CDATA[").
                 append(messageBuilder.toString()).
                 append("]]>").
