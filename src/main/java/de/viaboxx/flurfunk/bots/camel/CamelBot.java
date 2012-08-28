@@ -157,9 +157,9 @@ public class CamelBot extends RouteBuilder {
     private static String messageString(String from, String subject, String body, String channels) {
 
         StringBuilder messageBuilder = new StringBuilder().
-                append(escapeHtml4(subject)).
+                append(subject).
                 append("\n").
-                append(escapeHtml4(body));
+                append(body);
         //TODO: Append urls!
 
         StringBuilder xmlBuilder = new StringBuilder().
