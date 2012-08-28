@@ -17,6 +17,7 @@
 package de.viaboxx.flurfunk.bots.camel;
 
 import com.google.common.base.Joiner;
+import com.sun.tools.javac.resources.version;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -27,8 +28,11 @@ import org.constretto.ConstrettoBuilder;
 import org.constretto.ConstrettoConfiguration;
 import org.springframework.core.io.DefaultResourceLoader;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
@@ -57,6 +61,24 @@ public class CamelBot extends RouteBuilder {
     }
 
     private ConstrettoConfiguration configureConstretto() {
+
+        InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("META-INF/maven/de.viaboxx.flurfunk/flurfunk-camelbot/pom.properties");
+        if(inputStream != null){
+            System.out.println("==========================");
+            System.out.println("Flurfunk C A M E L B O T !");
+            System.out.println("==========================");
+            System.out.println("http://flurfunk.github.com");
+            System.out.println("==========================");
+            Properties prop = new Properties();
+            try {
+                prop.load(inputStream);
+                String version = prop.getProperty("version");
+                System.out.println("Starting camelbot:" + version);
+            } catch (IOException e) {
+                System.out.println("WARNING: No meta information found in this camelbot distribution. Could be it's broken!");
+            }
+        }
+
         String propFile = System.getProperty("camelbotProps");
         if (propFile == null) {
             System.out.println("No camelbotProps system property specified. Will look in /etc/camelbot.properties for configuration.");
