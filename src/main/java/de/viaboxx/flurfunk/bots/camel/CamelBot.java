@@ -73,7 +73,7 @@ public class CamelBot extends RouteBuilder {
             try {
                 prop.load(inputStream);
                 String version = prop.getProperty("version");
-                System.out.println("Starting camelbot:" + version);
+                System.out.println("Starting flurfunk-camelbot:" + version);
             } catch (IOException e) {
                 System.out.println("WARNING: No meta information found in this camelbot distribution. Could be it's broken!");
             }
