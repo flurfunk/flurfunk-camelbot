@@ -5,19 +5,19 @@ Camelbot is a generic Flurfunk-bot that uses Apache Camel.
 
 Run it locally like this:
 
-        mvn camel:run
+    mvn camel:run
 
 Generating a standalone camelbot application/daemon
 ---------------------------------------------------
 
-        mvn package
+    mvn package
 
 This will create a zipfile in the target directory.
 
 Running camelbot
 ----------------
 
-        sh camelbot_dir/bin/camelbot
+    sh camelbot_dir/bin/camelbot
 
 
 Configuration
