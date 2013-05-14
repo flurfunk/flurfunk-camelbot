@@ -103,8 +103,21 @@ public class CamelBot extends RouteBuilder {
 
         from(String.format("imaps://imap.gmail.com?consumer.delay=%s&username=%s&password=%s&folderName=%s", pollingFreq, username, password, imapFolder)).
                 process(new MailProcessor()).
-                to(flurfunkUrl(config));
+                to(jabber(config));
     }
+
+    private String jabber(ConstrettoConfiguration config) {
+        //  config.evaluateToString("jabberID"); not sure what to use that for..
+        String username = config.evaluateToString("jabberUsername");
+        String password = config.evaluateToString("jabberPassword");
+        String roomName = config.evaluateToString("jabberRoom");
+        String jabberDomain = config.evaluateToString("jabberDomain");
+        String jabberHost = config.evaluateToString("jabberHost");
+        String jabberPort = config.evaluateToString("jabberPort");
+        String nickname = config.evaluateToString("jabberNickName");
+        return "xmpp://" + username + "@" + jabberHost + ":" + jabberPort + "/?nickname=" + nickname + "&room=" + roomName + "@" + jabberDomain + "&password=" + password;
+    }
+
 
     private String flurfunkUrl(ConstrettoConfiguration config) {
         return config.evaluateToString("flurfunkUrl") + config.evaluateToString("flurfunkUrlSecurity");
@@ -118,7 +131,7 @@ public class CamelBot extends RouteBuilder {
         from(String.format("irc:camelbot@%s?channels=%s", ircServer, ircChannel)).
                 choice().
                 when(body().startsWith(messagePrefix)).process(new IrcProcessor(messagePrefix)).
-                to(flurfunkUrl(config));
+                to(jabber(config));
     }
 
     private static class MailProcessor implements Processor {
@@ -138,7 +151,7 @@ public class CamelBot extends RouteBuilder {
             if (subject.contains("Service Alert")) channels.add("nagios");
 
             String channelsCommaSeparated = Joiner.on(',').join(channels);
-            exchange.getIn().setBody(messageString(from, subject, "", channelsCommaSeparated));
+            exchange.getIn().setBody(forJabber(from, subject, "", channelsCommaSeparated));
         }
 
     }
@@ -163,7 +176,7 @@ public class CamelBot extends RouteBuilder {
             //ircMessage starts with 'camelbot: ' - cut away that part
             String body = message.substring(messagePrefix.length() + 1, message.length());
 
-            exchange.getIn().setBody(messageString(user, subject, body, "irc"));
+            exchange.getIn().setBody(forJabber(user, subject, body, "irc"));
         }
     }
 
@@ -191,5 +204,16 @@ public class CamelBot extends RouteBuilder {
                 append("]]>").
                 append("</message>");
         return xmlBuilder.toString();
+    }
+
+    private static String forJabber(String from, String subject, String body, String channels) {
+
+        StringBuilder messageBuilder = new StringBuilder().
+                append("(via "+from + ") ").
+                append(subject).
+                append(": ").
+                append(body).
+                append(" [channels: " + channels + "]");
+        return messageBuilder.toString();
     }
 }
