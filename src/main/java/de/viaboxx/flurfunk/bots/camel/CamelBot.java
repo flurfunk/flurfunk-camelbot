@@ -17,7 +17,6 @@
 package de.viaboxx.flurfunk.bots.camel;
 
 import com.google.common.base.Joiner;
-import com.sun.tools.javac.resources.version;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
