@@ -13,7 +13,6 @@
 
     <properties>
         <camel.version>2.11.0</camel.version>
-        <spring.version>3.0.5.RELEASE</spring.version>
     </properties>
 
     <dependencies>
@@ -55,19 +54,12 @@
         <dependency>
             <groupId>org.constretto</groupId>
             <artifactId>constretto-api</artifactId>
-            <version>1.1.2</version>
+            <version>2.0.4</version>
         </dependency>
         <dependency>
             <groupId>org.constretto</groupId>
             <artifactId>constretto-core</artifactId>
-            <version>1.1.2</version>
-        </dependency>
-
-        <!-- Constretto uses spring core, but in constretto 2.0.x we can throw it out again-->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-            <version>${spring.version}</version>
+            <version>2.0.4</version>
         </dependency>
 
 

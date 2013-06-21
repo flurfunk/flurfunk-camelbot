@@ -25,6 +25,7 @@ import org.apache.camel.component.mail.MailMessage;
 import org.apache.camel.spring.Main;
 import org.constretto.ConstrettoBuilder;
 import org.constretto.ConstrettoConfiguration;
+import org.constretto.model.Resource;
 import org.springframework.core.io.DefaultResourceLoader;
 
 import java.io.IOException;
@@ -86,9 +87,9 @@ public class CamelBot extends RouteBuilder {
 
         ConstrettoConfiguration config = new ConstrettoBuilder()
                 .createPropertiesStore()
-                .addResource(new DefaultResourceLoader().getResource("camelbot.properties"))
-                .addResource(new DefaultResourceLoader().getResource("camelbot-overrides.properties"))
-                .addResource(new DefaultResourceLoader().getResource(propFile))
+                .addResource(Resource.create("classpath:camelbot.properties"))
+                .addResource(Resource.create("classpath:camelbot-overrides.properties"))
+                .addResource(Resource.create(propFile))
                 .done()
                 .getConfiguration();
         return config;
