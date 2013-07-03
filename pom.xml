@@ -42,6 +42,12 @@
             <artifactId>camel-mail</artifactId>
             <version>${camel.version}</version>
         </dependency>
+        <!-- Use Hipchat API lib-->
+        <dependency>
+            <groupId>com.github.hipchat</groupId>
+            <artifactId>jHipchat</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
 
         <!-- Pull in commons-lang to get a quick conversion to html escaped symbols -->
         <dependency>
