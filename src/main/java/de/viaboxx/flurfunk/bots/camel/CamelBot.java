@@ -16,6 +16,8 @@
  */
 package de.viaboxx.flurfunk.bots.camel;
 
+import com.github.hipchat.api.HipChat;
+import com.github.hipchat.api.messages.Message;
 import com.google.common.base.Joiner;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -26,7 +28,6 @@ import org.apache.camel.spring.Main;
 import org.constretto.ConstrettoBuilder;
 import org.constretto.ConstrettoConfiguration;
 import org.constretto.model.Resource;
-import org.springframework.core.io.DefaultResourceLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +41,8 @@ import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
  * A Camel Router
  */
 public class CamelBot extends RouteBuilder {
+
+    private static final String DIRECT_HIPCHAT_PROCESSOR = "direct:hipchatProcessor";
 
     /**
      * Launch the app.
@@ -58,12 +61,13 @@ public class CamelBot extends RouteBuilder {
         ConstrettoConfiguration config = configureConstretto();
         fromIrcRoute(config);
         fromImapRoute(config);
+        toHipChat(config);
     }
 
     private ConstrettoConfiguration configureConstretto() {
 
         InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("META-INF/maven/de.viaboxx.flurfunk/flurfunk-camelbot/pom.properties");
-        if(inputStream != null){
+        if (inputStream != null) {
             System.out.println("==========================");
             System.out.println("Flurfunk C A M E L B O T !");
             System.out.println("==========================");
@@ -103,12 +107,9 @@ public class CamelBot extends RouteBuilder {
 
         from(String.format("imaps://imap.gmail.com?consumer.delay=%s&username=%s&password=%s&folderName=%s", pollingFreq, username, password, imapFolder)).
                 process(new MailProcessor()).
-                to(flurfunkUrl(config));
+                to(DIRECT_HIPCHAT_PROCESSOR);
     }
 
-    private String flurfunkUrl(ConstrettoConfiguration config) {
-        return config.evaluateToString("flurfunkUrl") + config.evaluateToString("flurfunkUrlSecurity");
-    }
 
     private void fromIrcRoute(ConstrettoConfiguration config) {
         String ircServer = config.evaluateToString("ircServer");  //irc.irccloud.com
@@ -118,7 +119,29 @@ public class CamelBot extends RouteBuilder {
         from(String.format("irc:camelbot@%s?channels=%s", ircServer, ircChannel)).
                 choice().
                 when(body().startsWith(messagePrefix)).process(new IrcProcessor(messagePrefix)).
-                to(flurfunkUrl(config));
+                to(DIRECT_HIPCHAT_PROCESSOR);
+    }
+
+    private void toHipChat(ConstrettoConfiguration config) {
+        from("direct:hipchatProcessor")
+                .process(new HipChatProcessor(config));
+    }
+
+    private static class HipChatProcessor implements Processor {
+        private final ConstrettoConfiguration config;
+
+        public HipChatProcessor(ConstrettoConfiguration config) {
+            this.config = config;
+        }
+
+        @Override
+        public void process(Exchange exchange) throws Exception {
+            String message = (String) exchange.getIn().getBody();
+            String authToken = config.evaluateToString("hipchatAuthToken");
+            String roomId = config.evaluateToString("hipchatRoomId");
+            String from = config.evaluateToString("hipchatBotName");
+            new HipChat(authToken).sendMessage(message, from, true, Message.Color.GREEN, roomId, false);
+        }
     }
 
     private static class MailProcessor implements Processor {
@@ -192,4 +215,6 @@ public class CamelBot extends RouteBuilder {
                 append("</message>");
         return xmlBuilder.toString();
     }
+
+
 }
