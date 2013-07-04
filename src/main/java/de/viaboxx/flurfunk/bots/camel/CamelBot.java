@@ -16,9 +16,9 @@
  */
 package de.viaboxx.flurfunk.bots.camel;
 
-import com.github.hipchat.api.HipChat;
-import com.github.hipchat.api.messages.Message;
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
+import com.google.common.io.*;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -29,8 +29,11 @@ import org.constretto.ConstrettoBuilder;
 import org.constretto.ConstrettoConfiguration;
 import org.constretto.model.Resource;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -140,8 +143,90 @@ public class CamelBot extends RouteBuilder {
             String authToken = config.evaluateToString("hipchatAuthToken");
             String roomId = config.evaluateToString("hipchatRoomId");
             String from = config.evaluateToString("hipchatBotName");
-            new HipChat(authToken).sendMessage(message, from, true, Message.Color.GREEN, roomId, false);
+            sendMessage(message, from, "green", roomId, true, authToken);
         }
+
+        /**
+         * See https://www.hipchat.com/docs/api/method/rooms/message for possible options
+         *
+         * @param message
+         * @param from
+         * @param color
+         * @param roomId
+         * @param notify
+         * @param authToken
+         */
+        public void sendMessage(String message, String from, String color, String roomId, boolean notify, String authToken) {
+            String query = String.format("?format=%s&auth_token=%s", "json", authToken);
+
+            StringBuilder params = new StringBuilder();
+
+            if (message == null || from == null) {
+                throw new IllegalArgumentException("Cant send message with null message or null user");
+            } else {
+                params.append("room_id=");
+                params.append(roomId);
+                params.append("&from=");
+                try {
+                    params.append(URLEncoder.encode(from, "UTF-8"));
+                    params.append("&message=");
+                    params.append(URLEncoder.encode(message, "UTF-8"));
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            if (notify) {
+                params.append("&notify=1");
+            }
+
+            if (color != null) {
+                params.append("&color=");
+                params.append(color);
+            }
+
+            final String paramsToSend = params.toString();
+
+            final HttpURLConnection connection;
+            try {
+                URL requestUrl = new URL("https://api.hipchat.com/v1/rooms/message" + query);
+                connection = (HttpURLConnection) requestUrl.openConnection();
+                connection.setDoOutput(true);
+
+                connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                connection.setRequestProperty("Content-Length", Integer.toString(paramsToSend.getBytes().length));
+                connection.setRequestProperty("Content-Language", "en-US");
+
+                sendRequest(paramsToSend, connection);
+
+                String response = readResponse(connection);
+                System.out.println("Received response from hipchat: "+response);
+                connection.disconnect();
+            } catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
+        private String readResponse(final HttpURLConnection connection) throws IOException {
+            InputSupplier<InputStreamReader> supplier = CharStreams.newReaderSupplier(new InputSupplier<InputStream>() {
+                @Override
+                public InputStream getInput() throws IOException {
+                    return connection.getInputStream();
+                }
+            }, Charset.defaultCharset());
+            return CharStreams.toString(supplier);
+        }
+
+        private void sendRequest(String paramsToSend, final HttpURLConnection connection) throws IOException {
+            OutputSupplier<BufferedOutputStream> outputSupplier = new OutputSupplier<BufferedOutputStream>() {
+                @Override
+                public BufferedOutputStream getOutput() throws IOException {
+                    return new BufferedOutputStream(connection.getOutputStream());
+                }
+            };
+            ByteStreams.write(paramsToSend.getBytes(), outputSupplier);
+        }
+
     }
 
     private static class MailProcessor implements Processor {
