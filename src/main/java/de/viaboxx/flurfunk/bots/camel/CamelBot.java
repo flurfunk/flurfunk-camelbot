@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,8 +18,10 @@ package de.viaboxx.flurfunk.bots.camel;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
-import com.google.common.io.*;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.CharStreams;
+import com.google.common.io.InputSupplier;
+import com.google.common.io.OutputSupplier;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -30,7 +32,14 @@ import org.constretto.ConstrettoBuilder;
 import org.constretto.ConstrettoConfiguration;
 import org.constretto.model.Resource;
 
-import java.io.*;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Part;
+import javax.mail.internet.MimeMultipart;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -171,6 +180,9 @@ public class CamelBot extends RouteBuilder {
             params.append(URLEncoder.encode(from, "UTF-8"));
             params.append("&message=");
             params.append(URLEncoder.encode(message, "UTF-8"));
+            params.append("&format=");
+            params.append("html");
+
 
             if (notify) {
                 params.append("&notify=1");
@@ -195,7 +207,7 @@ public class CamelBot extends RouteBuilder {
             sendRequest(paramsToSend, connection);
 
             String response = readResponse(connection);
-            System.out.println("Sent parameters: " + paramsToSend + " - Received response from hipchat: " +response);
+            System.out.println("Sent parameters: " + paramsToSend + " - Received response from hipchat: " + response);
             connection.disconnect();
         }
 
@@ -225,10 +237,14 @@ public class CamelBot extends RouteBuilder {
 
         @Override
         public void process(Exchange exchange) throws Exception {
-            MailMessage message = (MailMessage) exchange.getIn();
+            MailMessage mailMessage = (MailMessage) exchange.getIn();
 
-            String from = message.getMessage().getFrom()[0].toString();
-            String subject = message.getMessage().getSubject();
+            String from = mailMessage.getMessage().getFrom()[0].toString();
+            String subject = mailMessage.getMessage().getSubject();
+            String body;
+            if(mailMessage.getBody() instanceof MimeMultipart) {
+                body = getText(mailMessage.getMessage()).substring(0,1100) + " [... truncated]";
+            } else body = mailMessage.getBody().toString();
 
             List<String> channels = new ArrayList<String>();
 
@@ -238,8 +254,55 @@ public class CamelBot extends RouteBuilder {
             if (subject.contains("Service Alert")) channels.add("nagios");
 
             String channelsCommaSeparated = Joiner.on(',').join(channels);
-            exchange.getIn().setBody(messageString(from, subject, "", channelsCommaSeparated));
+            exchange.getIn().setBody(messageString(from, subject, body, channelsCommaSeparated));
         }
+
+
+        private boolean textIsHtml = false;
+
+        /**
+         * From http://www.oracle.com/technetwork/java/javamail/faq/index.html#mainbody
+         * Return the primary text content of the message.
+         */
+        private String getText(Part p) throws
+                MessagingException, IOException {
+            if (p.isMimeType("text/*")) {
+                String s = (String)p.getContent();
+                textIsHtml = p.isMimeType("text/html");
+                return s;
+            }
+
+            if (p.isMimeType("multipart/alternative")) {
+                // prefer html text over plain text
+                Multipart mp = (Multipart)p.getContent();
+                String text = null;
+                for (int i = 0; i < mp.getCount(); i++) {
+                    Part bp = mp.getBodyPart(i);
+                    if (bp.isMimeType("text/plain")) {
+                        if (text == null)
+                            text = getText(bp);
+                        continue;
+                    } else if (bp.isMimeType("text/html")) {
+                        String s = getText(bp);
+                        if (s != null)
+                            return s;
+                    } else {
+                        return getText(bp);
+                    }
+                }
+                return text;
+            } else if (p.isMimeType("multipart/*")) {
+                Multipart mp = (Multipart)p.getContent();
+                for (int i = 0; i < mp.getCount(); i++) {
+                    String s = getText(mp.getBodyPart(i));
+                    if (s != null)
+                        return s;
+                }
+            }
+
+            return null;
+        }
+
 
     }
 
@@ -279,18 +342,15 @@ public class CamelBot extends RouteBuilder {
     private static String messageString(String from, String subject, String body, String channels) {
 
         StringBuilder messageBuilder = new StringBuilder().
+                append("<b>").
                 append(subject).
+                append("</b>").
                 append("\n").
-                append(body);
-        //TODO: Append urls!
-
-        StringBuilder xmlBuilder = new StringBuilder().
-                append("<message channels='" + escapeHtml4(channels) + "' author='" + escapeHtml4(from) + "'>").
-                append("<![CDATA[").
-                append(messageBuilder.toString()).
-                append("]]>").
-                append("</message>");
-        return xmlBuilder.toString();
+                append("<br/>").
+                append("<pre>").
+                append(body).
+                append("</pre>");
+        return messageBuilder.toString();
     }
 
 
