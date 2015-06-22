@@ -156,7 +156,7 @@ public class CamelBot extends RouteBuilder {
          * @param notify
          * @param authToken
          */
-        public void sendMessage(String message, String from, String color, String roomId, boolean notify, String authToken) {
+        public void sendMessage(String message, String from, String color, String roomId, boolean notify, String authToken) throws IOException {
             String query = String.format("?format=%s&auth_token=%s", "json", authToken);
 
             StringBuilder params = new StringBuilder();
@@ -167,13 +167,9 @@ public class CamelBot extends RouteBuilder {
                 params.append("room_id=");
                 params.append(roomId);
                 params.append("&from=");
-                try {
-                    params.append(URLEncoder.encode(from, "UTF-8"));
-                    params.append("&message=");
-                    params.append(URLEncoder.encode(message, "UTF-8"));
-                } catch (UnsupportedEncodingException e) {
-                    throw new RuntimeException(e);
-                }
+                params.append(URLEncoder.encode(from, "UTF-8"));
+                params.append("&message=");
+                params.append(URLEncoder.encode(message, "UTF-8"));
             }
 
             if (notify) {
@@ -188,23 +184,19 @@ public class CamelBot extends RouteBuilder {
             final String paramsToSend = params.toString();
 
             final HttpURLConnection connection;
-            try {
-                URL requestUrl = new URL("https://api.hipchat.com/v1/rooms/message" + query);
-                connection = (HttpURLConnection) requestUrl.openConnection();
-                connection.setDoOutput(true);
+            URL requestUrl = new URL("https://api.hipchat.com/v1/rooms/message" + query);
+            connection = (HttpURLConnection) requestUrl.openConnection();
+            connection.setDoOutput(true);
 
-                connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                connection.setRequestProperty("Content-Length", Integer.toString(paramsToSend.getBytes().length));
-                connection.setRequestProperty("Content-Language", "en-US");
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("Content-Length", Integer.toString(paramsToSend.getBytes().length));
+            connection.setRequestProperty("Content-Language", "en-US");
 
-                sendRequest(paramsToSend, connection);
+            sendRequest(paramsToSend, connection);
 
-                String response = readResponse(connection);
-                System.out.println("Received response from hipchat: "+response);
-                connection.disconnect();
-            } catch (IOException e) {
-                throw Throwables.propagate(e);
-            }
+            String response = readResponse(connection);
+            System.out.println("Sent parameters: " + paramsToSend + " - Received response from hipchat: " +response);
+            connection.disconnect();
         }
 
         private String readResponse(final HttpURLConnection connection) throws IOException {
