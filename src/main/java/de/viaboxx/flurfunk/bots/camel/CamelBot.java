@@ -17,6 +17,7 @@
 package de.viaboxx.flurfunk.bots.camel;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.io.*;
 import org.apache.camel.Exchange;
@@ -161,16 +162,15 @@ public class CamelBot extends RouteBuilder {
 
             StringBuilder params = new StringBuilder();
 
-            if (message == null || from == null) {
-                throw new IllegalArgumentException("Cant send message with null message or null user");
-            } else {
-                params.append("room_id=");
-                params.append(roomId);
-                params.append("&from=");
-                params.append(URLEncoder.encode(from, "UTF-8"));
-                params.append("&message=");
-                params.append(URLEncoder.encode(message, "UTF-8"));
-            }
+            Preconditions.checkNotNull(message, "Cannot send null message");
+            Preconditions.checkNotNull(from, "Cannot send message without from-field");
+
+            params.append("room_id=");
+            params.append(roomId);
+            params.append("&from=");
+            params.append(URLEncoder.encode(from, "UTF-8"));
+            params.append("&message=");
+            params.append(URLEncoder.encode(message, "UTF-8"));
 
             if (notify) {
                 params.append("&notify=1");
