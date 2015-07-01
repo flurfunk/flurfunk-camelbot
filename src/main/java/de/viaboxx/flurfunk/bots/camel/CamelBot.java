@@ -16,12 +16,12 @@
  */
 package de.viaboxx.flurfunk.bots.camel;
 
+import com.google.api.client.http.*;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.CharStreams;
-import com.google.common.io.InputSupplier;
-import com.google.common.io.OutputSupplier;
+import com.google.common.io.*;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -36,10 +36,7 @@ import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.internet.MimeMultipart;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -56,6 +53,9 @@ import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 public class CamelBot extends RouteBuilder {
 
     private static final String DIRECT_HIPCHAT_PROCESSOR = "direct:hipchatProcessor";
+
+    static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
+
 
     /**
      * Launch the app.
@@ -195,40 +195,20 @@ public class CamelBot extends RouteBuilder {
 
             final String paramsToSend = params.toString();
 
-            final HttpURLConnection connection;
-            URL requestUrl = new URL("https://api.hipchat.com/v1/rooms/message" + query);
-            connection = (HttpURLConnection) requestUrl.openConnection();
-            connection.setDoOutput(true);
+            HttpRequestFactory requestFactory =
+                    HTTP_TRANSPORT.createRequestFactory(new HttpRequestInitializer() {
+                        @Override
+                        public void initialize(HttpRequest httpRequest) throws IOException {
+                            //Nothing to do here
+                        }
+                    });
+            GenericUrl url = new GenericUrl("https://api.hipchat.com/v1/rooms/message" + query);
+            HttpContent content = new ByteArrayContent("application/x-www-form-urlencoded",paramsToSend.getBytes());
+            HttpRequest request = requestFactory.buildPostRequest(url, content);
+            HttpResponse response = request.execute();
+            System.out.println("Sent parameters: " + paramsToSend + " - Received response from hipchat: " + response.getStatusMessage());
+            System.out.println("Response content: " + CharStreams.toString(new InputStreamReader(response.getContent())));
 
-            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            connection.setRequestProperty("Content-Length", Integer.toString(paramsToSend.getBytes().length));
-            connection.setRequestProperty("Content-Language", "en-US");
-
-            sendRequest(paramsToSend, connection);
-
-            String response = readResponse(connection);
-            System.out.println("Sent parameters: " + paramsToSend + " - Received response from hipchat: " + response);
-            connection.disconnect();
-        }
-
-        private String readResponse(final HttpURLConnection connection) throws IOException {
-            InputSupplier<InputStreamReader> supplier = CharStreams.newReaderSupplier(new InputSupplier<InputStream>() {
-                @Override
-                public InputStream getInput() throws IOException {
-                    return connection.getInputStream();
-                }
-            }, Charset.defaultCharset());
-            return CharStreams.toString(supplier);
-        }
-
-        private void sendRequest(String paramsToSend, final HttpURLConnection connection) throws IOException {
-            OutputSupplier<BufferedOutputStream> outputSupplier = new OutputSupplier<BufferedOutputStream>() {
-                @Override
-                public BufferedOutputStream getOutput() throws IOException {
-                    return new BufferedOutputStream(connection.getOutputStream());
-                }
-            };
-            ByteStreams.write(paramsToSend.getBytes(), outputSupplier);
         }
 
     }
@@ -243,7 +223,7 @@ public class CamelBot extends RouteBuilder {
             String subject = mailMessage.getMessage().getSubject();
             String body;
             if(mailMessage.getBody() instanceof MimeMultipart) {
-                body = getText(mailMessage.getMessage()).substring(0,1100) + " [... truncated]";
+                body = Ascii.truncate(mailMessage.getMessage().toString(), 1100, " [... truncated]");
             } else body = mailMessage.getBody().toString();
 
             List<String> channels = new ArrayList<String>();
