@@ -195,13 +195,7 @@ public class CamelBot extends RouteBuilder {
 
             final String paramsToSend = params.toString();
 
-            HttpRequestFactory requestFactory =
-                    HTTP_TRANSPORT.createRequestFactory(new HttpRequestInitializer() {
-                        @Override
-                        public void initialize(HttpRequest httpRequest) throws IOException {
-                            //Nothing to do here
-                        }
-                    });
+            HttpRequestFactory requestFactory = HTTP_TRANSPORT.createRequestFactory();
             GenericUrl url = new GenericUrl("https://api.hipchat.com/v1/rooms/message" + query);
             HttpContent content = new ByteArrayContent("application/x-www-form-urlencoded",paramsToSend.getBytes());
             HttpRequest request = requestFactory.buildPostRequest(url, content);
