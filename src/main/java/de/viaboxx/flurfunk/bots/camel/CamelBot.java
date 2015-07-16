@@ -217,7 +217,8 @@ public class CamelBot extends RouteBuilder {
             String subject = mailMessage.getMessage().getSubject();
             String body;
             if(mailMessage.getBody() instanceof MimeMultipart) {
-                body = Ascii.truncate(mailMessage.getMessage().toString(), 1100, " [... truncated]");
+                String text = getText(mailMessage.getMessage());
+                body = Ascii.truncate(text, 1100, " [... truncated]");
             } else body = mailMessage.getBody().toString();
 
             List<String> channels = new ArrayList<String>();
