@@ -21,7 +21,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.io.*;
+import com.google.common.io.CharStreams;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -36,16 +36,13 @@ import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.internet.MimeMultipart;
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
-import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
 /**
  * A Camel Router
@@ -197,7 +194,7 @@ public class CamelBot extends RouteBuilder {
 
             HttpRequestFactory requestFactory = HTTP_TRANSPORT.createRequestFactory();
             GenericUrl url = new GenericUrl("https://api.hipchat.com/v1/rooms/message" + query);
-            HttpContent content = new ByteArrayContent("application/x-www-form-urlencoded",paramsToSend.getBytes());
+            HttpContent content = new ByteArrayContent("application/x-www-form-urlencoded", paramsToSend.getBytes());
             HttpRequest request = requestFactory.buildPostRequest(url, content);
             HttpResponse response = request.execute();
             System.out.println("Sent parameters: " + paramsToSend + " - Received response from hipchat: " + response.getStatusMessage());
@@ -216,7 +213,7 @@ public class CamelBot extends RouteBuilder {
             String from = mailMessage.getMessage().getFrom()[0].toString();
             String subject = mailMessage.getMessage().getSubject();
             String body;
-            if(mailMessage.getBody() instanceof MimeMultipart) {
+            if (mailMessage.getBody() instanceof MimeMultipart) {
                 String text = getText(mailMessage.getMessage());
                 body = Ascii.truncate(text, 1100, " [... truncated]");
             } else body = mailMessage.getBody().toString();
@@ -242,14 +239,14 @@ public class CamelBot extends RouteBuilder {
         private String getText(Part p) throws
                 MessagingException, IOException {
             if (p.isMimeType("text/*")) {
-                String s = (String)p.getContent();
+                String s = (String) p.getContent();
                 textIsHtml = p.isMimeType("text/html");
                 return s;
             }
 
             if (p.isMimeType("multipart/alternative")) {
                 // prefer html text over plain text
-                Multipart mp = (Multipart)p.getContent();
+                Multipart mp = (Multipart) p.getContent();
                 String text = null;
                 for (int i = 0; i < mp.getCount(); i++) {
                     Part bp = mp.getBodyPart(i);
@@ -267,7 +264,7 @@ public class CamelBot extends RouteBuilder {
                 }
                 return text;
             } else if (p.isMimeType("multipart/*")) {
-                Multipart mp = (Multipart)p.getContent();
+                Multipart mp = (Multipart) p.getContent();
                 for (int i = 0; i < mp.getCount(); i++) {
                     String s = getText(mp.getBodyPart(i));
                     if (s != null)
