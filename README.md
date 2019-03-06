@@ -29,7 +29,7 @@ Camelbot will look for configuration in
 /etc/camelbot.properties 
 ```
 
-To override this location, you can either sepcify this system variable (export JAVA_OPTS..):
+To override this location, you can either specify this system variable (export JAVA_OPTS..):
 
 ```
 -DcamelProps=path-to-config-file
